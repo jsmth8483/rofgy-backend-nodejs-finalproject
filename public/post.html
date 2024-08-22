@@ -131,42 +131,78 @@
 		<div class="pagination" id="pagination"></div>
 
 		<script>
-			const posts = [];
+			// const posts = [];
 			const postsPerPage = 3;
 			let currentPage = 1;
 
-			function createPost() {
+			async function createPost() {
 				const text = document.getElementById('text').value;
 				if (text) {
-					posts.push({ id: posts.length + 1, text });
+					// posts.push({ id: posts.length + 1, text });
+					const postEndpoint = window.location.origin + '/posts';
+					const headers = new Headers();
+					headers.append('Content-Type', 'application/json');
+					const post = await fetch(postEndpoint, {
+						method: 'POST',
+						body: JSON.stringify({ text: text }),
+						headers: headers,
+					});
 					updatePostList();
 					document.getElementById('text').value = '';
 				}
 			}
 
-			function deletePost(postId) {
-				const index = posts.findIndex((post) => post.id === postId);
-				if (index !== -1) {
-					posts.splice(index, 1);
+			async function deletePost(postId) {
+				// const index = posts.findIndex((post) => post.id === postId);
+				const deleteEndpoint =
+					window.location.origin + `/posts/${postId}`;
+				const headers = new Headers();
+				headers.append('Content-Type', 'application/json');
+				const post = await fetch(deleteEndpoint, {
+					method: 'DELETE',
+					headers: headers,
+				});
+				updatePostList();
+			}
+
+			async function editPost(postId) {
+				const getEndpoint = window.location.origin + `/posts/${postId}`;
+				const getHeaders = new Headers();
+				getHeaders.append('Content-Type', 'application/json');
+				const post = await fetch(getEndpoint, {
+					method: 'GET',
+					headers: getHeaders,
+				}).then((data) => {
+					return data.json();
+				});
+
+				const newText = prompt('Edit the post:', post.text);
+
+				if (newText !== null) {
+					const putEndpoint =
+						window.location.origin + `/posts/${postId}`;
+					const putHeaders = new Headers();
+					putHeaders.append('Content-Type', 'application/json');
+					const updatedPost = await fetch(putEndpoint, {
+						method: 'PUT',
+						body: JSON.stringify({ text: newText }),
+						headers: putHeaders,
+					});
 					updatePostList();
 				}
 			}
 
-			function editPost(postId) {
-				const newText = prompt(
-					'Edit the post:',
-					posts.find((post) => post.id === postId).text
-				);
-				if (newText !== null) {
-					const index = posts.findIndex((post) => post.id === postId);
-					if (index !== -1) {
-						posts[index].text = newText;
-						updatePostList();
-					}
-				}
-			}
+			async function updatePostList() {
+				const getEndpoint = window.location.origin + '/posts';
+				const headers = new Headers();
+				headers.append('Content-Type', 'application/json');
+				const posts = await fetch(getEndpoint, {
+					method: 'GET',
+					headers: headers,
+				}).then((data) => {
+					return data.json();
+				});
 
-			function updatePostList() {
 				const postList = document.getElementById('postList');
 				const pagination = document.getElementById('pagination');
 				const startIndex = (currentPage - 1) * postsPerPage;
@@ -190,12 +226,12 @@
 					const editButton = document.createElement('span');
 					editButton.classList.add('edit-post-btn');
 					editButton.textContent = 'Edit';
-					editButton.onclick = () => editPost(post.id);
+					editButton.onclick = () => editPost(post._id);
 
 					const deleteButton = document.createElement('span');
 					deleteButton.classList.add('delete-post-btn');
 					deleteButton.textContent = 'Delete';
-					deleteButton.onclick = () => deletePost(post.id);
+					deleteButton.onclick = () => deletePost(post._id);
 
 					postElement.appendChild(postText);
 					postElement.appendChild(editButton);

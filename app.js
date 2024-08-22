@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const session = require('express-session');
 const path = require('path');
 const mongoose = require('mongoose');
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,6 +24,7 @@ const Post = mongoose.model('Post', {
 	text: String,
 });
 
+app.use(cors({ origin: 'http://127.0.0.1:3000' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
@@ -137,51 +139,56 @@ app.post('/login', async (req, res) => {
 // Insert your post creation code here.
 app.post('/posts', authenticateJWT, (req, res) => {
 	const { text } = req.body;
+
 	if (!text || typeof text !== 'string')
 		return res
 			.status(400)
 			.json({ message: 'Please provide valid post content' });
 
-	const newPost = { userId: req.user.userId, text };
-	postMessage.push(newPost);
+	const newPost = new Post({ userId: req.user.userId, text });
+	newPost.save(newPost);
 
 	res.status(201).json({ message: 'Post created successfully' });
 });
 
 // Insert your post updation code here.
-app.put('/posts/:postId', authenticateJWT, (req, res) => {
-	const postId = parseInt(req.params.postId);
-	const { text } = req.body;
+app.put('/posts/:postId', authenticateJWT, async (req, res) => {
+	const postId = mongoose.Types.ObjectId(req.params.postId);
+	const text = req.body.text;
+	console.log(text);
+	console.log(postId);
 
-	const postIndex = posts.findIndex(
-		(post) => post.id === postId && post.userId === req.user.userId
-	);
-
-	if (postIndex === -1)
-		return res.status(404).json({ message: 'Post not found' });
-
-	posts[postIndex.text] = text;
-
-	res.json({
-		message: 'Post updated successfully',
-		updatedPost: post[postIndex],
-	});
+	const post = await Post.findOneAndUpdate({ _id: postId }, { text: text })
+		.then((docs) => {
+			return res.json({ message: 'Post updated successfully' });
+		})
+		.catch((err) => {
+			return res.json({ message: err });
+		});
 });
 
 // Insert your post deletion code here.
-app.delete('/posts/:postId', authenticateJWT, (req, res) => {
-	const postId = parseInt(req.params.postId);
+app.delete('/posts/:postId', authenticateJWT, async (req, res) => {
+	const postId = req.params.postId;
 
-	const postIndex = posts.findIndex(
-		(post) => post.id === postId && post.userId === req.user.userId
-	);
+	const post = await Post.findByIdAndDelete(postId)
+		.then((docs) => {
+			return res.json({ message: 'Post deleted successfully' });
+		})
+		.catch((err) => {
+			return res.json({ message: err });
+		});
+});
 
-	if (postIndex === -1)
-		return res.status(404).json({ message: 'Post not found' });
+app.get('/posts', authenticateJWT, async (req, res) => {
+	const posts = await Post.find({});
+	res.json(posts);
+});
 
-	const deletedPost = posts.splice(postIndex, 1)[0];
-
-	res.json({ message: 'Post deleted successfully', deletedPost });
+app.get('/posts/:postId', authenticateJWT, async (req, res) => {
+	const postId = mongoose.Types.ObjectId(req.params.postId);
+	const post = await Post.findOne({ _id: postId });
+	res.json(post);
 });
 
 // Insert your user logout code here.
