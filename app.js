@@ -10,7 +10,7 @@ const SECRET_KEY = 'your_secret_key';
 
 mongoose.set('strictQuery', false);
 
-const uri = 'mongodb://localhost:27017';
+const uri = 'mongodb://mongodb:27017';
 mongoose.connect(uri, { dbName: 'SocialDB' });
 
 const User = mongoose.model('User', {
@@ -104,7 +104,7 @@ app.post('/register', async (req, res) => {
 			{ expiresIn: '1h' }
 		);
 		req.session.token = token;
-		res.send({ message: `The user ${username} has been added` });
+		res.redirect(`/index?username=${newUser.username}`);
 	} catch (error) {
 		console.error(error);
 		res.status(500).json({ message: 'Internal Server Error' });
@@ -127,7 +127,7 @@ app.post('/login', async (req, res) => {
 			{ expiresIn: '1h' }
 		);
 		req.session.token = token;
-		res.redirect({ message: `${user.username} has logged in` });
+		res.redirect(`/index?username=${user.username}`);
 	} catch (error) {
 		console.error(error);
 		res.status(500).json({ message: 'Internal Server Error' });
